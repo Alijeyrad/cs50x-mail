@@ -1,3 +1,35 @@
 textarea {
     min-height: 400px;
 }
+
+#emailBody {
+    width: 500px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+#emailSender {
+    width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#emailTimeStamp {
+    width: 170px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.singleEmail {
+    min-height: 60px;
+    border-radius: 15px;
+}
+
+.singleEmail:hover {
+    box-shadow: 0px 2px 10px -1px rgba(0,0,0,0.1),
+                0px -2px 10px -1px rgba(0,0,0,0.1);
+}
