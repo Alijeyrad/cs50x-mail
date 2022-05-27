@@ -109,27 +109,46 @@ const fetchSingleMail = async function(id) {
 const showEmail = async function(id) {
   // get the email from api
   const mail = await fetchSingleMail(id);
-  // makeEmailRaed(id)
   console.log(mail);
   // hide and show related views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
   document.querySelector('#single-mail-view').style.display = 'block';
-
+  
   // create template
   let fullEmail = createFullEmailTemplate(mail);
 
+  // mark email as read
+  makeEmailRaed(id)
+
   // load the mail in "single-mail-view"
   document.querySelector('#single-mail-view').innerHTML = fullEmail;
+}
+
+const makeEmailRaed = function(id) {
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      read: true
+    })
+  })
+}
+
+const reply = function() {
+  compose_email()
 }
 
 const createFullEmailTemplate = function(mail) {
   const fullEmail =  `
     <div class="fullEmail d-flex flex-column">
       <h4>${mail.subject !== '' ? mail.subject : 'no subject'}</h4>
-      <p>from: "${mail.sender}"</p>
-      <p>to: ${mail.recipients.map((rec)=>(' "' + rec + '"'))}</p>
-      <p>${mail.body !== '' ? mail.body : 'no body'}</p>
+      <p class="border p-2 rounded bg-light"><strong>from: </strong>"${mail.sender}"</p>
+      <p class="border p-2 rounded bg-light"><strong>to: </strong>${mail.recipients.map((rec)=>(' "' + rec + '"'))}</p>
+      <div class="border shadow-sm p-4 rounded bg-light">${mail.body !== '' ? mail.body : 'no body'}
+        <div>
+          <button onclick="reply()" class="btn btn-outline-dark btn-sm mt-4">Reply</button>
+        </div>
+      </div>
     </div>
   `;
 
