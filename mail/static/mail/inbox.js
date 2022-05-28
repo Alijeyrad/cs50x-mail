@@ -5,34 +5,58 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#sent').addEventListener('click', () => load_mailbox('sent'));
   document.querySelector('#archived').addEventListener('click', () => load_mailbox('archive'));
   document.querySelector('#submitButton').addEventListener('click', (event) => sendEmail(event));
-  document.querySelector('#compose').addEventListener('click', compose_email);
+  document.querySelector('#compose').addEventListener('click', () => compose_email());
   
-
   // By default, load the inbox
   load_mailbox('inbox');
 });
 
-function compose_email() {
+const compose_email = async function(id = -1) {
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#single-mail-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
   
-  // Clear out composition fields
-  document.querySelector('#compose-recipients').value = '';
-  document.querySelector('#compose-subject').value = '';
-  document.querySelector('#compose-body').value = '';
+  // if reply mode > find email > fill input fields
+  let response;
+  let subject = '';
+  let timestamp = '';
+  let sender = '';
+  let body = '';
+  if (id !== -1) {
+    const x = await fetch(`/emails/${id}`);
+    response = await x.json();
+    subject = response.subject;
+    timestamp = response.timestamp;
+    sender = response.sender;
+    body = response.body;
+  }
+
+  // Clear out composition fields or fill them in reply mode
+  document.querySelector('#compose-recipients').value = sender;
+
+  if (subject) {
+    document.querySelector('#compose-subject').value = subject.startsWith('Re: ') ? subject : `Re: ${subject}`;
+  } else {
+    document.querySelector('#compose-subject').value = '';
+  }
+
+  if (timestamp) {
+    document.querySelector('#compose-body').value = `<On ${timestamp} ${sender} wrote: ${body}>`;
+  } else {
+    document.querySelector('#compose-body').value = body;
+  }
 }
 
 const load_mailbox = async function(mailbox, sentSuccess = '') {
-  
+
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
   document.querySelector('#single-mail-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
+  
   // Show the mailbox name
-
   const header = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
   
   // "template" is the final string loaded inside #emails-view
@@ -53,9 +77,21 @@ const load_mailbox = async function(mailbox, sentSuccess = '') {
       break;
   }
 
+  let count = 0;
   emails.forEach(email => {
     template += makeEmailTemplate(email);
+    count++;
   })
+
+  if (count === 0) {
+    template += `
+      <div class="noEmails border rounded container mb-2 text-center bg-light shadow-sm">
+          <strong>
+              No Emails here
+          </strong>
+      </div>
+    `
+  }
   
   const emailsView = document.querySelector('#emails-view')
   emailsView.innerHTML = template;
@@ -126,6 +162,7 @@ const showEmail = async function(id) {
 }
 
 const makeEmailRaed = function(id) {
+
   fetch(`/emails/${id}`, {
     method: 'PUT',
     body: JSON.stringify({
@@ -134,8 +171,33 @@ const makeEmailRaed = function(id) {
   })
 }
 
-const reply = function() {
-  compose_email()
+const reply = function(id) {
+  compose_email(id);
+}
+
+const markAsUnread = async function(id) {
+
+  const x = fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      read: false
+    })
+  })
+
+  load_mailbox('inbox');
+  load_mailbox('inbox');
+}
+
+const makeArchived = async function(id, archived) {
+  const x = fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      archived: !archived
+    })
+  })
+
+  load_mailbox('archive');
+  load_mailbox('archive');
 }
 
 const createFullEmailTemplate = function(mail) {
@@ -146,7 +208,9 @@ const createFullEmailTemplate = function(mail) {
       <p class="border p-2 rounded bg-light"><strong>to: </strong>${mail.recipients.map((rec)=>(' "' + rec + '"'))}</p>
       <div class="border shadow-sm p-4 rounded bg-light">${mail.body !== '' ? mail.body : 'no body'}
         <div>
-          <button onclick="reply()" class="btn btn-outline-dark btn-sm mt-4">Reply</button>
+          <button onclick="reply(${mail.id})" class="btn btn-outline-dark btn-sm mt-4">Reply</button>
+          <button onclick="markAsUnread(${mail.id})" id="markAsUnread" class="btn btn-outline-dark btn-sm mt-4">Mark as unread</button>
+          <button onclick="makeArchived(${mail.id}, ${mail.archived})" id="markArchived" class="btn btn-outline-dark btn-sm mt-4">${mail.archived? 'Unarchive' : 'Archive'}</button>
         </div>
       </div>
     </div>
